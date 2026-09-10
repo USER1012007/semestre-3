@@ -1,13 +1,15 @@
 #include <iostream>
 #include <stack>
-#include <tuple>
 #include <vector>
 
 using namespace std;
 
 struct binomy {
-  int potencia;
-  stack<tuple<int, string, string, string, string, int>> state;
+  stack<int> index;
+  stack<string> operacion;
+  stack<string> estadoPila;
+  stack<string> variablesLocales;
+  stack<string> accionPendiente;
 };
 
 int counter = 0;
@@ -47,7 +49,7 @@ string formatearTermino(int coef, int expA, int expB, bool esPrimero) {
   return resultado;
 }
 
-void imprimirFila(int n, int k) {
+void imprimirFila(int n, int k, binomy bin) {
   if (k > n) {
     return;
   }
@@ -58,36 +60,67 @@ void imprimirFila(int n, int k) {
 
   cout << formatearTermino(coef, expA, expB, k == 0);
 
-  imprimirFila(n, k + 1);
+  imprimirFila(n, k + 1, bin);
 }
 
 void imprimirTorre(int nivelActual, int nivelMaximo, binomy bin) {
+
+  int espacios;
 
   if (nivelActual > nivelMaximo) {
     return;
   }
 
+  string estado =
+      "imprimirTorre(" + to_string(nivelActual) + ", " + to_string(nivelMaximo);
+
+  string variables_locaes = "nivelActual: " + to_string(nivelActual) +
+                            "nivelMaximo: " + to_string(nivelMaximo);
+
+  string accion = "imprimirTorre(" + to_string(nivelActual) + " + 1, " +
+                  to_string(nivelMaximo);
+
+  bin.index.push(nivelActual);
+  bin.operacion.push("PUSH");
+  bin.estadoPila.push(estado);
+  bin.variablesLocales.push(variables_locaes);
+
+  if (nivelActual == 0) {
+    espacios = (nivelMaximo - 1 - nivelActual) * 4;
+    cout << string(espacios + 2, ' ');
+  } else {
+    espacios = (nivelMaximo - nivelActual) * 4;
+    cout << string(espacios, ' ');
+  }
+
   cout << "(a + b)^" << nivelActual << " = ";
 
-  imprimirFila(nivelActual, 0);
+  imprimirFila(nivelActual, 0, bin);
 
   cout << '\n';
-
-  bin.potencia = nivelActual;
-  bin.state.push(make_tuple(nivelActual, "a", "b", "+", "=", nivelActual));
 
   imprimirTorre(nivelActual + 1, nivelMaximo, bin);
 }
 
-void pila() {}
+void pila() {
+  cout << "todas las piramides";
+  int i = 0;
+  for (binomy bin : binomial) {
+    cout << "piramide ingresada: " << i;
+    // for (int i = 0; i < bin.index[]; i++) {
+    // }
+    // cout << bin.variablesLocales;
+    i++;
+  }
+}
 
 void menu() {
   int opcion = 0;
   while (opcion != 3) {
-    cout << "Seleccione una opción:" << endl;
-    cout << "1. Mostrar piramide" << endl;
-    cout << "2. Ver pila" << endl;
-    cout << "3. Salir" << endl;
+    cout << "seleccione una opcion:" << endl;
+    cout << "1. mostrar piramide" << endl;
+    cout << "2. ver pila" << endl;
+    cout << "3. salir" << endl;
     cin >> opcion;
     if (opcion == 1) {
       int n;
@@ -96,11 +129,12 @@ void menu() {
       if (n < 10) {
         binomy bin;
         imprimirTorre(0, n, bin);
+        binomial.push_back(bin);
         counter++;
       }
     } else if (opcion == 2) {
       pila();
-    } else {
+    } else if (opcion == 3) {
       return;
     }
   }
