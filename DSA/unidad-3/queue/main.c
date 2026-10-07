@@ -1,125 +1,211 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #define MAX_CLIENTES 20
+#define NUM_VENT 3
 
 typedef struct {
-  char (*cliente)[2];
-  char (*ventanilla)[2];
-  char (*turno)[5];
+  int cliente;
+  int ventanilla;
+  int turno;
+} Cliente;
 
-} Clientes;
+typedef struct {
+  Cliente elementos[MAX_CLIENTES];
+  int frente;
+  int final;
+  int tamano;
+} Cola;
 
-Clientes colaGeneral[MAX_CLIENTES];
-Clientes ventanilla1[MAX_CLIENTES], ventanilla2[MAX_CLIENTES],
-    ventanilla3[MAX_CLIENTES];
-Clientes colaAtendidos;
+Cola colaGeneral;
+Cola ventanilla[NUM_VENT];
+Cola colaAtendidos;
 
-int obtenerNumero(const char *turno) { return atoi(turno + 2); }
-
-int estaDuplicado(Clientes *s, char turno[10]) {}
-
-void ingresarClientes(Clientes *s) {
-  char turno[10];
-
-  for (int i = 0; i < 20; i++) {
-    int randomNumber = rand() % 1000;
-    snprintf(turno, sizeof(turno), "C-%03d", randomNumber);
-  }
+void inicializarCola(Cola *c) {
+  c->frente = 0;
+  c->final = -1;
+  c->tamano = 0;
 }
 
-void mostrarTurnos(Clientes *s, char stack) {
-  if (s == NULL) {
-    return;
-  }
-
-  printf("\nPila %c\n", stack);
-  printf("Cliente Turno\n");
-  for (int i = 0; i <= 20; i++) {
-    printf("[%05d]      %s[%05d]      %s[%05d]      %s\n", s->cliente,
-           s->ventanilla, s->turno);
-  }
+void inicializarTodo() {
+  inicializarCola(&colaGeneral);
+  inicializarCola(&colaAtendidos);
+  for (int i = 0; i < NUM_VENT; i++)
+    inicializarCola(&ventanilla[i]);
 }
 
-void formatearTabla(int paso, Clientes *origen, Clientes *aux,
-                    Clientes *destino) {
-  if (paso == 0) {
-    printf("\nPaso 0:\n\n");
-  } else {
-    printf("\nPaso %02d:\n\n", paso);
+int push(Cola *c, Cliente nuevo) {
+  if (c->tamano == MAX_CLIENTES)
+    return 0;
+  c->final = (c->final + 1) % MAX_CLIENTES;
+  c->elementos[c->final] = nuevo;
+  c->tamano++;
+  return 1;
+}
+
+int pop(Cola *c, Cliente *atendido) {
+  if (c->tamano == 0)
+    return 0;
+  *atendido = c->elementos[c->frente];
+  c->frente = (c->frente + 1) % MAX_CLIENTES;
+  c->tamano--;
+  return 1;
+}
+
+Cliente *elemento(Cola *c, int r) {
+  return &c->elementos[(c->frente + r) % MAX_CLIENTES];
+}
+
+void mostrarCola(Cola *c, const char *titulo) {
+  printf("\n        %s\n", titulo);
+  printf("   %-8s %-8s %-10s\n", "Cliente", "Turno", "Ventanilla");
+  printf("   ----------------------------\n");
+  for (int r = c->tamano - 1; r >= 0; r--) {
+    Cliente *p = elemento(c, r);
+    printf("   | %02d       F-%03d      %02d     |\n", p->cliente, p->turno,
+           p->ventanilla);
   }
+  printf("   ----------------------------\n");
+}
 
-  printf("                 %-16s %-16s %-16s\n", "Pila Origen", "Pila Auxiliar",
-         "Pila destino");
-  printf("                    %-13s    %-13s    %-13s\n", "Turno", "Turno",
-         "Turno");
+void mostrarVentanillas() {
+  int max = 0;
+  for (int w = 0; w < NUM_VENT; w++)
+    if (ventanilla[w].tamano > max)
+      max = ventanilla[w].tamano;
 
-  int maxAltura = 10;
-  // if (origen->tope + 1 > maxAltura)
-  //   maxAltura = origen->tope + 1;
-  // if (aux->tope + 1 > maxAltura)
-  //   maxAltura = aux->tope + 1;
-  // if (destino->tope + 1 > maxAltura)
-  //   maxAltura = destino->tope + 1;
+  printf("\n");
+  for (int w = 0; w < NUM_VENT; w++)
+    printf(" %-5s %-7s %-5s   ", "Cli.", "Turno", "Vent.");
+  printf("\n");
 
-  // for (int i = maxAltura - 1; i >= 0; i--) {
-  //   if (i <= origen->tope) {
-  //     printf("              %02d |  %-5s  |", i + 1, origen->turnos[i]);
-  //   } else {
-  //     printf("              %02d |  %-5s  |", i + 1, "");
-  //   }
-  //
-  //   if (i <= aux->tope) {
-  //     printf("       %02d |  %-5s  |", i + 1, aux->turnos[i]);
-  //   } else {
-  //     printf("       %02d |  %-5s  |", i + 1, "");
-  //   }
-  //
-  //   if (i <= destino->tope) {
-  //     printf("       %02d |  %-5s  |", i + 1, destino->turnos[i]);
-  //   } else {
-  //     printf("       %02d |  %-5s  |", i + 1, "");
-  //   }
-  //
-  //   printf("\n");
-  // }
+  for (int r = max - 1; r >= 0; r--) {
+    for (int w = 0; w < NUM_VENT; w++) {
+      if (r < ventanilla[w].tamano) {
+        Cliente *p = elemento(&ventanilla[w], r);
+        char a[8], b[8], c[8];
+        snprintf(a, sizeof a, "%02d", p->cliente);
+        snprintf(b, sizeof b, "F-%03d", p->turno);
+        snprintf(c, sizeof c, "%02d", p->ventanilla);
+        printf(" %-5s %-7s %-5s   ", a, b, c);
+      } else {
+        printf("%-20s   ", "");
+      }
+    }
+    printf("\n");
+  }
+  for (int w = 0; w < NUM_VENT; w++)
+    printf("   [Ventanilla %02d]      ", w + 1);
   printf("\n");
 }
 
-void menu() {
+void ingresarClientes() {
+  inicializarTodo();
+  int turno = 0;
+  for (int i = 1; i <= MAX_CLIENTES; i++) {
+    turno += 1 + rand() % 49;
+    Cliente nuevo;
+    nuevo.cliente = i;
+    nuevo.turno = turno;
+    nuevo.ventanilla = rand() % NUM_VENT + 1;
+    push(&colaGeneral, nuevo);
+  }
+  mostrarCola(&colaGeneral, "Fila General");
+}
 
+void formarVentanillas() {
+  if (colaGeneral.tamano == 0) {
+    printf("\nFila general vacia. Usar opcion 1.\n");
+    return;
+  }
+  printf("\nOpcion 2: Formar clientes en ventanillas\n");
+  int paso = 0;
+  printf("\nPaso %02d:\n", paso);
+  mostrarCola(&colaGeneral, "Fila General");
+  mostrarVentanillas();
+
+  Cliente tmp;
+  while (pop(&colaGeneral, &tmp)) {
+    push(&ventanilla[tmp.ventanilla - 1], tmp);
+    paso++;
+    printf("\nPaso %02d:\n", paso);
+    mostrarCola(&colaGeneral, "Fila General");
+    mostrarVentanillas();
+  }
+}
+
+void atenderClientes() {
+  int total = 0;
+  for (int w = 0; w < NUM_VENT; w++)
+    total += ventanilla[w].tamano;
+
+  if (total == 0) {
+    printf("\nventanillas vacias\n");
+    return;
+  }
+
+  int paso = 0;
+  printf("\nPaso %02d:\n", paso);
+  mostrarVentanillas();
+  mostrarCola(&colaAtendidos, "Fila Clientes Atendidos");
+
+  while (1) {
+    int mejor = -1;
+    for (int w = 0; w < NUM_VENT; w++) {
+      if (ventanilla[w].tamano == 0)
+        continue;
+      if (mejor == -1 || elemento(&ventanilla[w], 0)->turno <
+                             elemento(&ventanilla[mejor], 0)->turno)
+        mejor = w;
+    }
+    if (mejor == -1)
+      break;
+
+    Cliente tmp;
+    pop(&ventanilla[mejor], &tmp);
+    push(&colaAtendidos, tmp);
+
+    paso++;
+    printf("\nPaso %02d:\n", paso);
+    mostrarVentanillas();
+    mostrarCola(&colaAtendidos, "Fila Clientes Atendidos");
+  }
+}
+
+void menu() {
   int op;
   do {
     printf("\nMenu:\n");
-    printf("1. ingresar clientes al banco\n");
-    printf("2. formar clientes a las ventanillas\n");
-    printf("3. atender clientes\n");
+    printf("1. Ingresar clientes al banco\n");
+    printf("2. Formar clientes en ventanillas\n");
+    printf("3. Atender clientes\n");
     printf("4. Salir\n");
     printf("Opcion: ");
-    if (scanf("%d", &op) != 1) {
+    if (scanf("%d", &op) != 1)
       break;
-    }
 
     switch (op) {
     case 1:
       ingresarClientes();
       break;
     case 2:
+      formarVentanillas();
       break;
     case 3:
+      atenderClientes();
       break;
     case 4:
       break;
     default:
-      printf("opcion invalida\n");
+      printf("Opcion invalida\n");
     }
   } while (op != 4);
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   srand(time(NULL));
+  inicializarTodo();
   menu();
   return 0;
 }
